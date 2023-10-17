@@ -3,46 +3,51 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- CREATE A CUSTOMERS TABLE
 CREATE TABLE IF NOT EXISTS customers (
-	no_id SERIAL NOT NULL,
-	id_customer uuid DEFAULT uuid_generate_v4 (),
+	id uuid DEFAULT uuid_generate_v4 (), 
 	name_customer VARCHAR(50),
 	address TEXT,
-	phone_number VARCHAR(13),
-	NIK VARCHAR(10) PRIMARY KEY,
+	phone_number VARCHAR(10),
+	NIK VARCHAR(12) PRIMARY KEY,
 	createdAt TIMESTAMP NOT NULL DEFAULT NOW(),
 	updatedAt TIMESTAMP DEFAULT NOW(),
+	deletedAt TIMESTAMP,
 	UNIQUE(NIK)
 );
 
 -- CREATE A ACCOUNTS TABLE
+CREATE TYPE type_account AS ENUM ('Giro', 'Tabungan', 'Deposito');
 CREATE TABLE IF NOT EXISTS accounts (
-	no_id SERIAL NOT NULL,
-	id_account uuid DEFAULT uuid_generate_v4 () PRIMARY KEY,
+	id uuid DEFAULT uuid_generate_v4 () PRIMARY KEY,
+	type_account type_account,
 	no_account VARCHAR(15),
-	type_account VARCHAR(20) CHECK(type_account IN('Giro', 'Tabungan', 'Deposito')),
-	user_id VARCHAR(10),
-	pin_account INT CHECK(pin_account> 000000 AND pin_account < 999999),
+	user_id VARCHAR(12), 
+	pin_account INT,
 	createdAt TIMESTAMP NOT NULL DEFAULT NOW(),
+	updatedAt TIMESTAMP DEFAULT NOW(),
+	deletedAt TIMESTAMP,
 	UNIQUE(no_account),
 	CONSTRAINT fk_accounts
       FOREIGN KEY(user_id) 
 	  REFERENCES customers(NIK)
 );
 
--- CREATE A TRANSACTIONS TABLE 
+-- CREATE A TRANSACTIONS TABLE
+CREATE TYPE type_transaction AS ENUM ('Deposit', 'Withdraw', 'Transfer');
 CREATE TABLE IF NOT EXISTS transactions (
 	id_transaction uuid DEFAULT uuid_generate_v4 () PRIMARY KEY,
-	sender_account VARCHAR(25),
-	type_transaction VARCHAR(20) CHECK (type_transaction IN ('Deposit', 'Withdraw', 'Transfer')),
-	receiver_account VARCHAR(25),
+	sender_account VARCHAR(15),
+	type_transaction type_transaction,
+	receiver_account VARCHAR(15),
 	amount DECIMAL(15,2),
-	code_transaction UUID DEFAULT uuid_generate_v4(),
 	date_transaction TIMESTAMP NOT NULL DEFAULT NOW(),
+	createdAt TIMESTAMP NOT NULL DEFAULT NOW(),
+	updatedAt TIMESTAMP DEFAULT NOW(),
+	deletedAt TIMESTAMP,
+	UNIQUE(sender_account),
 	CONSTRAINT fk_transaction
 		FOREIGN KEY(sender_account)
 		REFERENCES accounts(no_account)
 );
-
 
 -- CREATE PROCEDURE ON CREATE ACCOUNT
 CREATE OR REPLACE PROCEDURE createCustomer (
@@ -60,13 +65,47 @@ BEGIN
 END;
 $$;
 
-
 -- CALL PROCEDURE CREATE CUSTOMER
 CALL createCustomer(
-	'Sri Lestari',
+	'Dewi Lestari',
 	'Medan',
-	'086783622',
-	'1234567890'
+	'0867836223',
+	'123456789021'
+);
+
+CALL createCustomer(
+	'Sri Tanjung',
+	'Jakarta',
+	'0877917892134',
+	'2233258799'
+);
+
+CALL createCustomer(
+	'Kevin Maretina',
+	'Madiun',
+	'0825682174679',
+	'2485867098'
+);
+
+CALL createCustomer(
+	'Anwar Santoso',
+	'Magetan',
+	'0813582174777',
+	'4586867703'
+);
+
+CALL createCustomer(
+	'Gunawan',
+	'Nganjuk',
+	'0834562999093',
+	'3312366778'
+);
+
+CALL createCustomer(
+	'Joko',
+	'Gresik',
+	'0834662899963',
+	'5312366778'
 );
 
 -- CREATE PROCEDURE ON UPDATED CUSTOMER
@@ -74,8 +113,7 @@ CREATE OR REPLACE PROCEDURE updateCustomer (
 	customerName VARCHAR,
 	customerAddress TEXT,
 	customerPhoneNumber VARCHAR,
-	customerNIK VARCHAR,
-	noId INT
+	customerNIK VARCHAR
 )
 	LANGUAGE plpgsql
 AS $$
@@ -84,26 +122,43 @@ BEGIN
 	SET name_customer = customerName,
 		address = customerAddress,
 		phone_number = customerPhoneNumber,
-		NIK = customerNIK
+		updatedAt = NOW()
 	WHERE
-		no_id = noId;
+		NIK = customerNIK;
 	COMMIT;
 END;
 $$;
 
 -- CALL PROCEDURE UPDATE CUSTOMER
 CALL updateCustomer(
-	'Doni Ismail',
-	'Bogor',
-	'0987625538',
-	'donijaya@gmail.com',
-	1
+	'Sri Tanjung',
+	'Jakarta',
+	'0877917892',
+	'123456789021'
 );
 
+-- CREATE PROCEDURE ON DELETE CUSTOMER
+CREATE OR REPLACE PROCEDURE deleteCustomer (
+	customerNIK VARCHAR
+)
+	LANGUAGE plpgsql
+AS $$
+BEGIN
+	UPDATE customers
+	SET	deletedAt = NOW()
+	WHERE NIK = customerNIK;
+	COMMIT;
+END;
+$$;
+
+-- CALL PROCEDURE DELETE CUSTOMER
+CALL deleteCustomer(
+	'123456789021'
+);
+ACTION
 -- CREATE INDEXING ON CUSTOMERS TABLE
 CREATE INDEX index_customers 
 ON customers(name_customer, address);
-
 
 -- CREATE PROCEDURE ON CREATE ACCOUNT
 CREATE OR REPLACE PROCEDURE createAccount (
@@ -116,49 +171,50 @@ CREATE OR REPLACE PROCEDURE createAccount (
 AS $$
 BEGIN
 	INSERT INTO accounts(no_account, type_account, user_id, pin_account)
-	VALUES (noAccount, typeAccount, userId, pinAccount);
+	VALUES (noAccount, typeAccount::type_account, userId, pinAccount);
 	COMMIT;
 END;
 $$;
 
 -- CALL PROCEDURE CREATE ACCOUNT
-CALL createAccount 
-	'202310170987654',
+CALL createAccount (
+	'202310170987652',
 	'Giro',
-	'1234567890',
-	'123456'
+	'123456789021',
+	123456
 );
 
-SELECT * FROM accounts;
-
 -- CREATE PROCEDURE ON UPDATED ACCOUNT
-CREATE OR REPLACE PROCEDURE UpdateAccount (
+CREATE OR REPLACE PROCEDURE updateAccount (
 	pinAccount INT,
-	noId INT
+	noAccount VARCHAR,
+	userId VARCHAR
 )
 	LANGUAGE plpgsql
 AS $$
 BEGIN
 	UPDATE accounts
 	SET 
-		pin_account = pinAccount
+		pin_account = pinAccount,
+		updatedAt = NOW()
 	WHERE 
-		no_id = noId;
+		no_account = noAccount
+		AND user_id = userId;
 	COMMIT;
 END;
 $$;
 
--- CALL UPDATED ACCOUNT
+-- CALL UPDATED ACCOUNT && UPDATE PIN VIA NO.ACCOUNT AND USER ID
 CALL updateAccount(
-	'Tabungan',
-	'123456',
-	2
+	456789, 					
+	'202310170987650',
+	'3312366778'
 );
+
 
 -- CREATE INDEXING ON ACCOUNTS TABLE
 CREATE INDEX index_account
-ON accounts(type_account, user_id);
-
+ON accounts(no_account, type_account, user_id);
 
 -- CREATE PROCEDURE ON ADD TRANSACTIONS
 CREATE OR REPLACE PROCEDURE addTransaction (
@@ -171,19 +227,18 @@ CREATE OR REPLACE PROCEDURE addTransaction (
 AS $$
 BEGIN
 	INSERT INTO transactions(sender_account, type_transaction, receiver_account, amount)
-	VALUES (accSender, typeTransaction, accReceiver, thisAmount);
+	VALUES (accSender, typeTransaction::type_transaction, accReceiver, thisAmount);
 	COMMIT;
 END;
 $$;
 
 -- CALL ADD TRANSACTION
 CALL addTransaction(
-	'202310170987654',
+	'202310170987652',
 	'Deposit',
-	'202310170987654',
-	1000
+	'202310170987652',
+	2000
 );
-
 
 -- CREATE INDEXING ON TRANSACTIONS TABLE
 CREATE INDEX index_transaction
