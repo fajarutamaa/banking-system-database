@@ -36,4 +36,7 @@ A bank wants to set up a system to track customer information, their accounts, a
 - [x] One Customer can have multiple Accounts, but each Account is owned by only one Customer 
 - [x] One Account can have multiple Transactions, but each Transaction relates to only one Account
 
+# Entity Relationship Diagram (ERD)
+
+![App Screenshot](bank_system.png)
 
