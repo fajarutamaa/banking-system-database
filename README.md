@@ -38,5 +38,5 @@ A bank wants to set up a system to track customer information, their accounts, a
 
 # Entity Relationship Diagram (ERD)
 
-![App Screenshot](bank_system.png)
+![App Screenshot](bank.png)
 
