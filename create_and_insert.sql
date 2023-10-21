@@ -155,7 +155,7 @@ $$;
 CALL deleteCustomer(
 	'123456789021'
 );
-ACTION
+
 -- CREATE INDEXING ON CUSTOMERS TABLE
 CREATE INDEX index_customers 
 ON customers(name_customer, address);
